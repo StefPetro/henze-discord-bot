@@ -3,7 +3,9 @@ import { writeHenzeOddsToFile } from "./oddsFetcher";
 
 export const sendMessage = () => {
   const token = process.env.DISCORD_TOKEN;
-  
+
+  console.log(`Starting Discord bot with token: ${token}`);
+
   const client = new Client({ intents: [GatewayIntentBits.Guilds] });
   
   client.once(Events.ClientReady, async readyClient => {

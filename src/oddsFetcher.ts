@@ -18,6 +18,8 @@ export const writeHenzeOddsToFile = async () => {
           flag: "w"
         }
       );
+
+      console.log(`Henze odds written to file: ${fileName}`);
     }
   } else {
     console.log("No events found.");
