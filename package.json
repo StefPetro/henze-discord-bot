@@ -1,0 +1,28 @@
+{
+  "name": "henze-discord-bot",
+  "version": "1.0.0",
+  "description": "A discord bot that fetches all henze allegeable odds from Danske Spil and sends them in a server every day",
+  "main": "index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node -r ts-node/register --env-file=.env ./index.ts",
+    "netlify:dev": "netlify dev",
+    "netlify:invoke": "netlify functions:invoke henze-scheduled-message"
+  },
+  "author": "Gustav Friis Bøgelund",
+  "license": "MIT",
+  "devDependencies": {
+    "@eslint/js": "^9.34.0",
+    "eslint": "^9.34.0",
+    "globals": "^16.3.0",
+    "jiti": "^2.5.1",
+    "netlify-cli": "^23.4.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.41.0"
+  },
+  "dependencies": {
+    "@netlify/functions": "^4.2.5",
+    "discord.js": "^14.22.1"
+  }
+}
