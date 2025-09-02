@@ -1,37 +1,111 @@
-import { Client, Events, GatewayIntentBits, TextChannel } from "discord.js";
 import { writeHenzeOddsToFile } from "./oddsFetcher";
 
-export const sendMessage = () => {
-  const token = process.env.DISCORD_TOKEN;
-
-  console.log(`Starting Discord bot with token: ${token}`);
-
-  const client = new Client({ intents: [GatewayIntentBits.Guilds] });
-  
-  client.once(Events.ClientReady, async readyClient => {
-    console.log(`Ready! Logged in as ${readyClient.user.tag}`);
-
-    const fileName = await writeHenzeOddsToFile();
-
-    const guilds = client.guilds.cache;
-    guilds.forEach(guild => {
-      const textChannel = guild.channels.cache.filter(channel => channel.isTextBased() && channel.isSendable()).first() as TextChannel;
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowString = tomorrow.toLocaleDateString("da-DK", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-
-      console.log(`Sending Henze-odds on server: ${guild.name}, channel: ${textChannel.name}`);
-
-      textChannel.send({
-        content: `Henze-odds for i morgen: ${tomorrowString}`,
-        files: [fileName]
-      });
-    });
-
-    client.destroy();
-  });
-  
-  console.log("client type:", typeof client?.login);
-  
-  client.login(token);
+interface Guild {
+  id: string;
+  name: string;
+  [key: string]: any;
 }
+
+interface Channel {
+  id: string;
+  name: string;
+  type: number;
+  [key: string]: any;
+}
+
+const DISCORD_API = "https://discord.com/api/v10";
+
+async function getAllGuilds(botToken: string): Promise<Guild[]> {
+  console.log('[getAllGuilds] Fetching all guilds...');
+  const url = `${DISCORD_API}/users/@me/guilds`;
+  const res: Response = await fetch(url, {
+    method: "GET",
+    headers: {
+      "Authorization": `Bot ${botToken}`,
+      "Content-Type": "application/json",
+    },
+  });
+  if (!res.ok) {
+    console.error('[getAllGuilds] Failed to fetch guilds:', await res.text());
+    throw new Error(await res.text());
+  }
+  const guilds = (await res.json()) as Guild[];
+  console.log(`[getAllGuilds] Fetched ${guilds.length} guild(s).`);
+  return guilds;
+}
+
+async function getFirstTextChannelId(guildId: string, botToken: string): Promise<string | null> {
+  console.log(`[getFirstTextChannelId] Fetching channels for guild: ${guildId}`);
+  const url = `${DISCORD_API}/guilds/${guildId}/channels`;
+  const res: Response = await fetch(url, {
+    method: "GET",
+    headers: {
+      "Authorization": `Bot ${botToken}`,
+      "Content-Type": "application/json",
+    },
+  });
+  if (!res.ok) {
+    console.error(`[getFirstTextChannelId] Failed to fetch channels for guild ${guildId}:`, await res.text());
+    throw new Error(await res.text());
+  }
+  const channels: Channel[] = (await res.json()) as Channel[];
+  const textChannel = channels.find((c) => c.type === 0);
+  if (textChannel) {
+    console.log(`[getFirstTextChannelId] Found text channel: ${textChannel.name} (${textChannel.id}) in guild ${guildId}`);
+    return textChannel.id;
+  } else {
+    console.warn(`[getFirstTextChannelId] No text channel found in guild ${guildId}`);
+    return null;
+  }
+}
+
+async function sendMessageToChannel(channelId: string, message: string, botToken: string, attachedFilePath?: string): Promise<void> {
+  console.log(`[sendMessageToChannel] Sending message to channel: ${channelId}`);
+  const url = `${DISCORD_API}/channels/${channelId}/messages`;
+  const res: Response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bot ${botToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ content: message, files: [ attachedFilePath ] }),
+  });
+  if (!res.ok) {
+    console.error(`[sendMessageToChannel] Failed to send message to channel ${channelId}:`, await res.text());
+    throw new Error(await res.text());
+  }
+  console.log(`[sendMessageToChannel] Message sent to channel ${channelId}`);
+}
+
+export const sendMessage = async (): Promise<{ statusCode: number; body: string }> => {
+  console.log('[sendMessage] Starting sendMessage process...');
+  const botToken = process.env.DISCORD_TOKEN!;
+  const guilds: Guild[] = await getAllGuilds(botToken);
+
+  console.log('[sendMessage] Writing Henze odds to file...');
+  const filePath = await writeHenzeOddsToFile();
+  console.log(`[sendMessage] Odds file written: ${filePath}`);
+
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowString = tomorrow.toLocaleDateString("da-DK", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const message = `Henze-odds for i morgen: ${tomorrowString}`;
+
+  let sentCount = 0;
+  for (const guild of guilds) {
+    console.log(`[sendMessage] Processing guild: ${guild.name} (${guild.id})`);
+    const channelId = await getFirstTextChannelId(guild.id, botToken);
+    if (channelId) {
+      await sendMessageToChannel(channelId, message, botToken, filePath);
+      sentCount++;
+    } else {
+      console.warn(`[sendMessage] No text channel found for guild: ${guild.name} (${guild.id})`);
+    }
+  }
+
+  console.log(`[sendMessage] Message sent to ${sentCount} guild(s).`);
+  return {
+    statusCode: 200,
+    body: `Message sent to ${sentCount} guild(s)!`,
+  };
+};
