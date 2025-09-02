@@ -31,5 +31,7 @@ export const sendMessage = () => {
     client.destroy();
   });
   
+  console.log("client type:", typeof client?.login);
+  
   client.login(token);
 }
