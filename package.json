@@ -23,6 +23,7 @@
     "typescript-eslint": "^8.41.0"
   },
   "dependencies": {
-    "@netlify/functions": "^4.2.5"
+    "@netlify/functions": "^4.2.5",
+    "discord.js": "^14.22.1"
   }
 }
