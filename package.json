@@ -6,8 +6,6 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node -r ts-node/register --env-file=.env ./index.ts",
-    "netlify:dev": "netlify dev",
-    "netlify:invoke": "netlify functions:invoke henze-scheduled-message",
     "build": "tsc"
   },
   "author": "Gustav Friis Bøgelund",
@@ -23,7 +21,6 @@
     "typescript-eslint": "^8.41.0"
   },
   "dependencies": {
-    "@netlify/functions": "^4.2.5",
     "discord.js": "^14.22.1"
   }
 }
