@@ -29,5 +29,5 @@ RUN adduser -S nodejs -u 1001
 RUN chown -R nodejs:nodejs /app
 USER nodejs
 
-# The container will be run by cron, so no CMD needed
-# The cron job should run: docker run --rm --env-file .env <image-name> node dist/index.js
+# Keep container running for cron jobs
+CMD ["tail", "-f", "/dev/null"]
